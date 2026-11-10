@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
+import toast from 'react-hot-toast';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { medicines as seedMedicines } from '../../data/mockData';
 
 const defaultForm = {
@@ -82,6 +84,10 @@ export default function MedicinePage() {
     setFormData(defaultForm);
     setErrors({});
     setIsFormOpen(true);
+  };
+
+  const openMedicineDetails = (medicine) => {
+    setSelectedMedicine(medicine);
   };
 
   const openEditForm = (medicine) => {
@@ -185,15 +191,7 @@ export default function MedicinePage() {
       setLoading(false);
       closeForm();
 
-      Swal.fire({
-        title: formMode === 'add' ? 'Medicine saved' : 'Changes saved',
-        text: formMode === 'add' ? 'The medicine has been added successfully.' : 'The medicine details were updated successfully.',
-        icon: 'success',
-        timer: 1600,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end',
-      });
+      toast.success(formMode === 'add' ? 'Medicine saved successfully' : 'Medicine updated successfully');
     }, 250);
   };
 
@@ -204,6 +202,7 @@ export default function MedicinePage() {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
       confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
     }).then((result) => {
@@ -211,16 +210,7 @@ export default function MedicinePage() {
 
       setMedicineList((current) => current.filter((item) => item.code !== medicine.code));
       setSelectedMedicine(null);
-
-      Swal.fire({
-        title: 'Medicine deleted',
-        text: `${medicine.name} was removed from the catalog.`,
-        icon: 'success',
-        timer: 1400,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end',
-      });
+      toast.success(`${medicine.name} deleted successfully`);
     });
   };
 
@@ -328,14 +318,32 @@ export default function MedicinePage() {
                         </td>
                         <td>
                           <div className="inline-actions">
-                            <button type="button" className="action-link" onClick={() => setSelectedMedicine(item)}>
-                              View
+                            <button
+                              type="button"
+                              className="icon-button"
+                              onClick={() => openMedicineDetails(item)}
+                              aria-label={`View ${item.name}`}
+                              title="View"
+                            >
+                              <Eye size={16} />
                             </button>
-                            <button type="button" className="action-link" onClick={() => openEditForm(item)}>
-                              Edit
+                            <button
+                              type="button"
+                              className="icon-button"
+                              onClick={() => openEditForm(item)}
+                              aria-label={`Edit ${item.name}`}
+                              title="Edit"
+                            >
+                              <Pencil size={16} />
                             </button>
-                            <button type="button" className="action-link danger-link" onClick={() => handleDelete(item)}>
-                              Delete
+                            <button
+                              type="button"
+                              className="icon-button danger-icon-button"
+                              onClick={() => handleDelete(item)}
+                              aria-label={`Delete ${item.name}`}
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
@@ -413,24 +421,44 @@ export default function MedicinePage() {
               <div className="form-grid">
                 <label>
                   <span>Medicine name</span>
-                  <input name="name" value={formData.name} onChange={handleChange} />
+                  <input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="e.g. Amoxicillin 500mg"
+                  />
                   {errors.name && <small>{errors.name}</small>}
                 </label>
 
                 <label>
                   <span>Generic name</span>
-                  <input name="genericName" value={formData.genericName} onChange={handleChange} />
+                  <input
+                    name="genericName"
+                    value={formData.genericName}
+                    onChange={handleChange}
+                    placeholder="e.g. Amoxicillin"
+                  />
                 </label>
 
                 <label>
                   <span>Code</span>
-                  <input name="code" value={formData.code} onChange={handleChange} />
+                  <input
+                    name="code"
+                    value={formData.code}
+                    onChange={handleChange}
+                    placeholder="e.g. MED-101"
+                  />
                   {errors.code && <small>{errors.code}</small>}
                 </label>
 
                 <label>
                   <span>Barcode</span>
-                  <input name="barcode" value={formData.barcode} onChange={handleChange} />
+                  <input
+                    name="barcode"
+                    value={formData.barcode}
+                    onChange={handleChange}
+                    placeholder="e.g. 8901234561011"
+                  />
                   {errors.barcode && <small>{errors.barcode}</small>}
                 </label>
 
@@ -448,25 +476,48 @@ export default function MedicinePage() {
 
                 <label>
                   <span>Supplier</span>
-                  <input name="supplier" value={formData.supplier} onChange={handleChange} />
+                  <input
+                    name="supplier"
+                    value={formData.supplier}
+                    onChange={handleChange}
+                    placeholder="e.g. MediCare Uganda"
+                  />
                   {errors.supplier && <small>{errors.supplier}</small>}
                 </label>
 
                 <label>
                   <span>Unit price</span>
-                  <input type="number" name="price" value={formData.price} onChange={handleChange} />
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleChange}
+                    placeholder="2500"
+                  />
                   {errors.price && <small>{errors.price}</small>}
                 </label>
 
                 <label>
                   <span>Stock quantity</span>
-                  <input type="number" name="stock" value={formData.stock} onChange={handleChange} />
+                  <input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleChange}
+                    placeholder="0"
+                  />
                   {errors.stock && <small>{errors.stock}</small>}
                 </label>
 
                 <label>
                   <span>Reorder level</span>
-                  <input type="number" name="reorderLevel" value={formData.reorderLevel} onChange={handleChange} />
+                  <input
+                    type="number"
+                    name="reorderLevel"
+                    value={formData.reorderLevel}
+                    onChange={handleChange}
+                    placeholder="20"
+                  />
                   {errors.reorderLevel && <small>{errors.reorderLevel}</small>}
                 </label>
 

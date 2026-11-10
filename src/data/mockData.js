@@ -1,10 +1,19 @@
+import {
+  AlertTriangle,
+  Boxes,
+  CalendarClock,
+  CircleDollarSign,
+  PackageSearch,
+  ReceiptText,
+} from 'lucide-react';
+
 export const dashboardStats = [
-  { label: 'Today sales', value: 'UGX 4.8M', change: '+12.5%', tone: 'positive' },
-  { label: 'Transactions', value: '142', change: '+9.1%', tone: 'positive' },
-  { label: 'Medicines', value: '1,284', change: '+28', tone: 'neutral' },
-  { label: 'Low stock', value: '23', change: '6 critical', tone: 'warning' },
-  { label: 'Expiring soon', value: '19', change: '3 urgent', tone: 'warning' },
-  { label: 'Expired stock', value: '4', change: 'Action needed', tone: 'danger' },
+  { label: 'Today sales', value: 'UGX 4.8M', change: '+12.5%', tone: 'positive', icon: CircleDollarSign },
+  { label: 'Transactions', value: '142', change: '+9.1%', tone: 'positive', icon: ReceiptText },
+  { label: 'Medicines', value: '1,284', change: '+28', tone: 'neutral', icon: Boxes },
+  { label: 'Low stock', value: '23', change: '6 critical', tone: 'warning', icon: PackageSearch },
+  { label: 'Expiring soon', value: '19', change: '3 urgent', tone: 'warning', icon: CalendarClock },
+  { label: 'Expired stock', value: '4', change: 'Action needed', tone: 'danger', icon: AlertTriangle },
 ];
 
 export const recentSales = [

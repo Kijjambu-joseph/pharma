@@ -1,11 +1,217 @@
-import { cartItems } from '../../data/mockData';
+import { useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
+import toast from 'react-hot-toast';
+import { Search, Trash2 } from 'lucide-react';
+import { medicines } from '../../data/mockData';
 
-const totals = cartItems.reduce(
-  (sum, item) => sum + item.qty * item.unitPrice,
-  0,
-);
+const defaultCart = [
+  { name: 'Paracetamol 500mg', qty: 3, unitPrice: 1200 },
+  { name: 'Amoxicillin 500mg', qty: 2, unitPrice: 2300 },
+  { name: 'Cough Syrup 120ml', qty: 1, unitPrice: 9600 },
+];
 
 export default function PosPage() {
+  const [search, setSearch] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [amountReceived, setAmountReceived] = useState('');
+  const [cart, setCart] = useState(defaultCart);
+
+  const productResults = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return medicines.slice(0, 4);
+
+    return medicines.filter((item) =>
+      item.name.toLowerCase().includes(query)
+      || item.code.toLowerCase().includes(query)
+      || item.barcode.toLowerCase().includes(query),
+    ).slice(0, 5);
+  }, [search]);
+
+  const subtotal = useMemo(
+    () => cart.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
+    [cart],
+  );
+
+  const total = subtotal;
+  const receivedAmount = Number(amountReceived || 0);
+  const change = receivedAmount - total;
+  const balanceDue = total - receivedAmount;
+
+  const addToCart = (medicine) => {
+    setCart((current) => {
+      const existing = current.find((item) => item.name === medicine.name);
+
+      if (existing) {
+        return current.map((item) =>
+          item.name === medicine.name ? { ...item, qty: item.qty + 1 } : item,
+        );
+      }
+
+      return [...current, { name: medicine.name, qty: 1, unitPrice: medicine.price }];
+    });
+  };
+
+  const updateQty = (itemName, delta) => {
+    setCart((current) =>
+      current
+        .map((item) =>
+          item.name === itemName ? { ...item, qty: Math.max(0, item.qty + delta) } : item,
+        )
+        .filter((item) => item.qty > 0),
+    );
+  };
+
+  const removeFromCart = (itemName) => {
+    setCart((current) => current.filter((item) => item.name !== itemName));
+  };
+
+  const handleCheckout = () => {
+    if (!cart.length) {
+      toast.error('Add at least one item before checkout');
+      return;
+    }
+
+    const received = Number(amountReceived || 0);
+
+    if (!received || received <= 0) {
+      toast.error('Enter the amount received before completing the sale');
+      return;
+    }
+
+    if (received < total) {
+      Swal.fire({
+        title: 'Payment is still short',
+        text: `Customer still owes UGX ${balanceDue.toLocaleString()}.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#1d4ed8',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Record partial payment',
+        cancelButtonText: 'Review cart',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          toast.error('Partial payment recorded. Complete the balance before closing the sale.');
+        }
+      });
+
+      return;
+    }
+
+    Swal.fire({
+      title: 'Complete checkout?',
+      html: `
+        <div style="text-align:left;">
+          <p><strong>Payment method:</strong> ${paymentMethod}</p>
+          <p><strong>Total:</strong> UGX ${total.toLocaleString()}</p>
+          <p><strong>Amount received:</strong> UGX ${received.toLocaleString()}</p>
+          <p><strong>Change:</strong> UGX ${Math.max(change, 0).toLocaleString()}</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#1d4ed8',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Confirm sale',
+      cancelButtonText: 'Cancel',
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      const saleReference = `TXN-${Date.now().toString().slice(-6)}`;
+      const saleDate = new Date().toLocaleString();
+      const itemBreakdown = cart
+        .map(
+          (item) => `
+            <tr>
+              <td>${item.name}</td>
+              <td>${item.qty}</td>
+              <td>UGX ${item.unitPrice.toLocaleString()}</td>
+              <td>UGX ${(item.qty * item.unitPrice).toLocaleString()}</td>
+            </tr>
+          `,
+        )
+        .join('');
+
+      setCart([]);
+      setAmountReceived('');
+      setPaymentMethod('cash');
+      setSearch('');
+
+      Swal.fire({
+        title: 'Receipt',
+        html: `
+          <div style="font-family:Arial, sans-serif; text-align:left; width:100%; color:#0f172a;">
+            <div style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
+              <h3 style="margin:0; font-size:24px;">PharmCare Pharmacy</h3>
+              <p style="margin:4px 0 0; font-size:12px; color:#475569;">Uganda • Cash counter</p>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+              <span>Receipt #</span>
+              <strong>${saleReference}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+              <span>Date</span>
+              <strong>${saleDate}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:16px;">
+              <span>Cashier</span>
+              <strong>Pharmacist</strong>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead>
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <th style="text-align:left; padding:6px 0;">Item</th>
+                  <th style="text-align:left; padding:6px 0;">Qty</th>
+                  <th style="text-align:left; padding:6px 0;">Price</th>
+                  <th style="text-align:right; padding:6px 0;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemBreakdown}
+              </tbody>
+            </table>
+
+            <div style="border-top:1px solid #e2e8f0; margin-top:12px; padding-top:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                <span>Subtotal</span>
+                <strong>UGX ${subtotal.toLocaleString()}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                <span>Payment method</span>
+                <strong>${paymentMethod}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                <span>Amount received</span>
+                <strong>UGX ${received.toLocaleString()}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:10px;">
+                <span>Change</span>
+                <strong>UGX ${Math.max(change, 0).toLocaleString()}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:12px; font-weight:700;">
+                <span>Total</span>
+                <span>UGX ${total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonText: 'Print receipt',
+        confirmButtonColor: '#1d4ed8',
+        showCloseButton: true,
+        width: '520px',
+      }).then((response) => {
+        if (response.isConfirmed) {
+          window.print();
+        }
+      });
+
+      toast.success(`${saleReference} completed successfully`);
+    });
+  };
+
   return (
     <section className="page-section">
       <div className="page-header">
@@ -13,24 +219,34 @@ export default function PosPage() {
           <p className="eyebrow">Cash counter</p>
           <h2>Point of sale</h2>
         </div>
-        <button type="button" className="primary-button">Complete checkout</button>
+        <button type="button" className="primary-button" onClick={handleCheckout} disabled={!cart.length}>Complete checkout</button>
       </div>
 
       <div className="pos-layout">
-        <div className="panel-card">
+        <div className="panel-card product-panel">
           <div className="panel-header">
-            <h3>Cart</h3>
-            <button type="button" className="action-link">Add item</button>
+            <h3>Search medicine</h3>
           </div>
-          <div className="cart-list">
-            {cartItems.map((item) => (
-              <div key={item.name} className="cart-item">
+
+          <div className="pos-search-box">
+            <Search size={16} />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, code or barcode"
+            />
+          </div>
+
+          <div className="product-results">
+            {productResults.map((item) => (
+              <button type="button" key={item.code} className="product-result-item" onClick={() => addToCart(item)}>
                 <div>
                   <strong>{item.name}</strong>
-                  <small>{item.qty} units</small>
+                  <small>{item.code}</small>
                 </div>
-                <span>UGX {(item.qty * item.unitPrice).toLocaleString()}</span>
-              </div>
+                <span>UGX {item.price.toLocaleString()}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -39,7 +255,7 @@ export default function PosPage() {
           <h3>Summary</h3>
           <div className="summary-row">
             <span>Subtotal</span>
-            <strong>UGX {totals.toLocaleString()}</strong>
+            <strong>UGX {subtotal.toLocaleString()}</strong>
           </div>
           <div className="summary-row">
             <span>VAT</span>
@@ -47,17 +263,57 @@ export default function PosPage() {
           </div>
           <div className="summary-row total">
             <span>Total</span>
-            <strong>UGX {totals.toLocaleString()}</strong>
+            <strong>UGX {total.toLocaleString()}</strong>
           </div>
           <label>
             <span>Payment method</span>
-            <select defaultValue="cash">
+            <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
               <option value="cash">Cash</option>
               <option value="mobile-money">Mobile money</option>
               <option value="card">Card</option>
             </select>
           </label>
+          <label>
+            <span>Amount received</span>
+            <input type="number" value={amountReceived} onChange={(event) => setAmountReceived(event.target.value)} placeholder="Enter amount" />
+          </label>
+          <div className="summary-row total change-row">
+            <span>{receivedAmount >= total ? 'Change' : 'Due'}</span>
+            <strong>UGX {Math.max(receivedAmount >= total ? change : balanceDue, 0).toLocaleString()}</strong>
+          </div>
         </aside>
+      </div>
+
+      <div className="panel-card pos-cart-panel">
+        <div className="panel-header">
+          <h3>Cart</h3>
+          <span className="cart-count">{cart.length} items</span>
+        </div>
+
+        <div className="cart-list">
+          {cart.map((item) => (
+            <div key={item.name} className="cart-item">
+              <div className="cart-item-main">
+                <div>
+                  <strong>{item.name}</strong>
+                  <small>UGX {item.unitPrice.toLocaleString()} each</small>
+                </div>
+              </div>
+
+              <div className="cart-actions">
+                <div className="qty-control">
+                  <button type="button" onClick={() => updateQty(item.name, -1)}>-</button>
+                  <span>{item.qty}</span>
+                  <button type="button" onClick={() => updateQty(item.name, 1)}>+</button>
+                </div>
+                <strong>UGX {(item.qty * item.unitPrice).toLocaleString()}</strong>
+                <button type="button" className="remove-item-button" onClick={() => removeFromCart(item.name)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

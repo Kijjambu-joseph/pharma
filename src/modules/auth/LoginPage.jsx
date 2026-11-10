@@ -1,4 +1,4 @@
-import Swal from 'sweetalert2';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
@@ -7,16 +7,7 @@ export default function LoginPage() {
   const onSubmit = (event) => {
     event.preventDefault();
 
-    Swal.fire({
-      title: 'Signed in successfully',
-      text: 'Welcome back to the Pharmacy POS dashboard.',
-      icon: 'success',
-      timer: 1400,
-      showConfirmButton: false,
-      toast: true,
-      position: 'top-end',
-    });
-
+    toast.success('Signed in successfully');
     navigate('/dashboard');
   };
 
