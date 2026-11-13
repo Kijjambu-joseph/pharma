@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import toast from 'react-hot-toast';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Boxes, Eye, PackageCheck, Pencil, Pill, Trash2 } from 'lucide-react';
 import { medicines as seedMedicines } from '../../data/mockData';
 
 const defaultForm = {
@@ -10,11 +10,13 @@ const defaultForm = {
   code: '',
   barcode: '',
   category: 'Antibiotic',
+  batch: 'BATCH-001',
   price: '',
   stock: '',
   reorderLevel: '',
   supplier: '',
   expiry: '',
+  photo: '',
 };
 
 const statusClasses = {
@@ -47,6 +49,27 @@ export default function MedicinePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const summary = useMemo(() => {
+    const total = medicineList.length;
+    const lowStock = medicineList.filter((item) => item.status === 'Low stock').length;
+    const outOfStock = medicineList.filter((item) => item.status === 'Out of stock').length;
+    const expiringSoon = medicineList.filter((item) => {
+      const expiry = new Date(item.expiry);
+      const soon = new Date();
+      soon.setDate(soon.getDate() + 45);
+      return expiry <= soon && item.stock > 0;
+    }).length;
+
+    return { total, lowStock, outOfStock, expiringSoon };
+  }, [medicineList]);
+
+  const summaryCards = [
+    { label: 'Total medicines', value: summary.total, tone: 'primary', icon: Boxes },
+    { label: 'Low stock', value: summary.lowStock, tone: 'warning', icon: AlertTriangle },
+    { label: 'Out of stock', value: summary.outOfStock, tone: 'danger', icon: PackageCheck },
+    { label: 'Expiring soon', value: summary.expiringSoon, tone: 'neutral', icon: Pill },
+  ];
+
   const filteredMedicines = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -64,20 +87,6 @@ export default function MedicinePage() {
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [medicineList, search, categoryFilter, statusFilter]);
-
-  const summary = useMemo(() => {
-    const total = medicineList.length;
-    const lowStock = medicineList.filter((item) => item.status === 'Low stock').length;
-    const outOfStock = medicineList.filter((item) => item.status === 'Out of stock').length;
-    const expiringSoon = medicineList.filter((item) => {
-      const expiry = new Date(item.expiry);
-      const soon = new Date();
-      soon.setDate(soon.getDate() + 45);
-      return expiry <= soon && item.stock > 0;
-    }).length;
-
-    return { total, lowStock, outOfStock, expiringSoon };
-  }, [medicineList]);
 
   const openAddForm = () => {
     setFormMode('add');
@@ -98,11 +107,13 @@ export default function MedicinePage() {
       code: medicine.code,
       barcode: medicine.barcode,
       category: medicine.category,
+      batch: medicine.batch || 'BATCH-001',
       price: String(medicine.price),
       stock: String(medicine.stock),
       reorderLevel: String(medicine.reorderLevel),
       supplier: medicine.supplier,
       expiry: medicine.expiry,
+      photo: medicine.photo || '',
     });
     setErrors({});
     setIsFormOpen(true);
@@ -118,6 +129,20 @@ export default function MedicinePage() {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: '' }));
+  };
+
+  const handlePhotoUpload = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((current) => ({ ...current, photo: String(reader.result || '') }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const validateForm = () => {
@@ -154,11 +179,13 @@ export default function MedicinePage() {
           code: formData.code.trim(),
           barcode: formData.barcode.trim(),
           category: formData.category,
+          batch: formData.batch || 'BATCH-001',
           price: Number(formData.price),
           stock: Number(formData.stock),
           reorderLevel: Number(formData.reorderLevel),
           supplier: formData.supplier.trim(),
           expiry: formData.expiry || '2028-01-01',
+          photo: formData.photo || '',
           status: getStatus(Number(formData.stock), Number(formData.reorderLevel)),
         };
 
@@ -177,11 +204,13 @@ export default function MedicinePage() {
               genericName: formData.genericName.trim() || formData.name.trim(),
               barcode: formData.barcode.trim(),
               category: formData.category,
+              batch: formData.batch || medicine.batch || 'BATCH-001',
               price: Number(formData.price),
               stock: nextStock,
               reorderLevel: nextReorder,
               supplier: formData.supplier.trim(),
               expiry: formData.expiry || medicine.expiry,
+              photo: formData.photo || medicine.photo || '',
               status: getStatus(nextStock, nextReorder),
             };
           }),
@@ -225,22 +254,17 @@ export default function MedicinePage() {
       </div>
 
       <div className="stats-grid medicine-summary">
-        <article className="stat-card summary-card">
-          <span>Total medicines</span>
-          <strong>{summary.total}</strong>
-        </article>
-        <article className="stat-card summary-card warning-card">
-          <span>Low stock</span>
-          <strong>{summary.lowStock}</strong>
-        </article>
-        <article className="stat-card summary-card danger-card">
-          <span>Out of stock</span>
-          <strong>{summary.outOfStock}</strong>
-        </article>
-        <article className="stat-card summary-card">
-          <span>Expiring soon</span>
-          <strong>{summary.expiringSoon}</strong>
-        </article>
+        {summaryCards.map(({ label, value, tone, icon: Icon }) => (
+          <article key={label} className={`stat-card summary-card ${tone === 'warning' ? 'warning-card' : tone === 'danger' ? 'danger-card' : ''}`}>
+            <div className="stat-header compact-stat-header">
+              <span>{label}</span>
+              <span className={`stat-icon ${tone === 'warning' ? 'warning' : tone === 'danger' ? 'danger' : ''}`}>
+                <Icon size={20} />
+              </span>
+            </div>
+            <strong>{value}</strong>
+          </article>
+        ))}
       </div>
 
       <div className="toolbar-row medicine-toolbar">
@@ -290,6 +314,7 @@ export default function MedicinePage() {
                   <thead>
                     <tr>
                       <th>Medicine</th>
+                      <th>Batch</th>
                       <th>Code</th>
                       <th>Category</th>
                       <th>Unit price</th>
@@ -303,10 +328,22 @@ export default function MedicinePage() {
                       <tr key={item.code}>
                         <td>
                           <div className="medicine-name-cell">
-                            <strong>{item.name}</strong>
-                            <small>{item.genericName}</small>
+                            <div className="medicine-thumb">
+                              {item.photo ? (
+                                <img src={item.photo} alt={item.name} />
+                              ) : (
+                                <span className="medicine-thumb-placeholder">
+                                  <Pill size={16} />
+                                </span>
+                              )}
+                            </div>
+                            <div className="medicine-name-meta">
+                              <strong>{item.name}</strong>
+                              <small>{item.genericName}</small>
+                            </div>
                           </div>
                         </td>
+                        <td>{item.batch || 'BATCH-001'}</td>
                         <td>{item.code}</td>
                         <td>{item.category}</td>
                         <td>UGX {item.price.toLocaleString()}</td>
@@ -365,6 +402,16 @@ export default function MedicinePage() {
                   </button>
                 </div>
 
+                <div className="medicine-detail-hero">
+                  {selectedMedicine.photo ? (
+                    <img src={selectedMedicine.photo} alt={selectedMedicine.name} />
+                  ) : (
+                    <div className="medicine-detail-placeholder">
+                      <Pill size={24} />
+                    </div>
+                  )}
+                </div>
+
                 <div className="detail-grid">
                   <div>
                     <span>Generic</span>
@@ -373,6 +420,10 @@ export default function MedicinePage() {
                   <div>
                     <span>Barcode</span>
                     <strong>{selectedMedicine.barcode}</strong>
+                  </div>
+                  <div>
+                    <span>Batch</span>
+                    <strong>{selectedMedicine.batch || 'BATCH-001'}</strong>
                   </div>
                   <div>
                     <span>Supplier</span>
@@ -475,6 +526,17 @@ export default function MedicinePage() {
                 </label>
 
                 <label>
+                  <span>Batch</span>
+                  <select name="batch" value={formData.batch} onChange={handleChange}>
+                    <option value="BATCH-001">BATCH-001</option>
+                    <option value="BATCH-002">BATCH-002</option>
+                    <option value="BATCH-003">BATCH-003</option>
+                    <option value="BATCH-004">BATCH-004</option>
+                    <option value="BATCH-005">BATCH-005</option>
+                  </select>
+                </label>
+
+                <label>
                   <span>Supplier</span>
                   <input
                     name="supplier"
@@ -524,6 +586,16 @@ export default function MedicinePage() {
                 <label>
                   <span>Expiry date</span>
                   <input type="date" name="expiry" value={formData.expiry} onChange={handleChange} />
+                </label>
+
+                <label className="full-width medicine-image-upload">
+                  <span>Medicine photo</span>
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+                  {formData.photo && (
+                    <div className="form-image-preview">
+                      <img src={formData.photo} alt="Medicine preview" />
+                    </div>
+                  )}
                 </label>
               </div>
 

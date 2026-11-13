@@ -7,9 +7,9 @@ import { getBusinessProfile } from '../../data/businessProfile';
 import { medicines } from '../../data/mockData';
 
 const defaultCart = [
-  { name: 'Paracetamol 500mg', qty: 3, unitPrice: 1200 },
-  { name: 'Amoxicillin 500mg', qty: 2, unitPrice: 2300 },
-  { name: 'Cough Syrup 120ml', qty: 1, unitPrice: 9600 },
+  { name: 'Paracetamol 500mg', qty: 3, unitPrice: 1200, photo: medicines[1]?.photo || '' },
+  { name: 'Amoxicillin 500mg', qty: 2, unitPrice: 2300, photo: medicines[0]?.photo || '' },
+  { name: 'Cough Syrup 120ml', qty: 1, unitPrice: 9600, photo: medicines[3]?.photo || '' },
 ];
 
 export default function PosPage() {
@@ -50,7 +50,7 @@ export default function PosPage() {
         );
       }
 
-      return [...current, { name: medicine.name, qty: 1, unitPrice: medicine.price }];
+      return [...current, { name: medicine.name, qty: 1, unitPrice: medicine.price, photo: medicine.photo || '' }];
     });
   };
 
@@ -517,9 +517,18 @@ export default function PosPage() {
           <div className="product-results">
             {productResults.map((item) => (
               <button type="button" key={item.code} className="product-result-item" onClick={() => addToCart(item)}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <small>{item.code}</small>
+                <div className="product-result-main">
+                  <div className="product-thumb product-result-thumb">
+                    {item.photo ? (
+                      <img src={item.photo} alt={item.name} />
+                    ) : (
+                      <span className="product-thumb-placeholder">Rx</span>
+                    )}
+                  </div>
+                  <div className="product-result-copy">
+                    <strong>{item.name}</strong>
+                    <small>{item.code}</small>
+                  </div>
                 </div>
                 <span>UGX {item.price.toLocaleString()}</span>
               </button>
@@ -574,6 +583,13 @@ export default function PosPage() {
           {cart.map((item) => (
             <div key={item.name} className="cart-item">
               <div className="cart-item-main">
+                <div className="product-thumb cart-thumb">
+                  {item.photo ? (
+                    <img src={item.photo} alt={item.name} />
+                  ) : (
+                    <span className="product-thumb-placeholder">Rx</span>
+                  )}
+                </div>
                 <div>
                   <strong>{item.name}</strong>
                   <small>UGX {item.unitPrice.toLocaleString()} each</small>

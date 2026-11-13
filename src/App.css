@@ -389,14 +389,27 @@ button {
 }
 
 .stat-icon {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
   background: rgba(37, 99, 235, 0.08);
   color: var(--primary);
+}
+
+.stat-icon svg,
+.quick-action-icon svg,
+.metric-row svg,
+.page-header-actions svg,
+.report-module-card svg,
+.icon-button svg,
+.header-icon-button svg,
+.nav-item svg,
+.brand-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 .stat-card:nth-child(4) .stat-icon,
@@ -1112,12 +1125,75 @@ th {
 
 .medicine-name-cell {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.medicine-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.medicine-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.medicine-thumb-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary);
+}
+
+.medicine-name-meta {
+  display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.medicine-name-cell small {
+.medicine-name-meta small {
   color: var(--muted);
+}
+
+.medicine-detail-hero {
+  width: 100%;
+  height: 180px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(37, 99, 235, 0.04);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.medicine-detail-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.medicine-detail-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .inline-actions {
@@ -1262,6 +1338,29 @@ th {
 
 .medicine-form small {
   color: var(--danger);
+}
+
+.medicine-image-upload input[type='file'] {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.03);
+  padding: 12px;
+}
+
+.form-image-preview {
+  width: 100%;
+  max-width: 220px;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.form-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .form-actions {
@@ -1536,6 +1635,49 @@ th {
   text-align: left;
 }
 
+.product-result-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.product-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-thumb-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.product-result-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .product-result-item:hover {
   border-color: rgba(37, 99, 235, 0.38);
   background: rgba(37, 99, 235, 0.04);
@@ -1599,6 +1741,11 @@ th {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.cart-thumb {
+  width: 38px;
+  height: 38px;
 }
 
 .cart-item-main {
@@ -1790,16 +1937,17 @@ th {
 
 .report-module-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px;
-  margin-bottom: 18px;
+  width: 100%;
+  margin: 18px 0 0;
 }
 
 .report-module-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 18px 16px;
+  padding: 16px 14px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--panel);

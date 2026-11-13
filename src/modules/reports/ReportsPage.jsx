@@ -153,16 +153,6 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="report-module-cards">
-        {reportModules.map((module) => (
-          <article key={module.label} className="report-module-card">
-            <strong>{module.label}</strong>
-            <small>{module.description}</small>
-            <button type="button" className="secondary-button" onClick={() => handleModuleReport(module.label)}>Generate</button>
-          </article>
-        ))}
-      </div>
-
       <div className="stats-grid reports-grid">
         {reportRows.map((row) => (
           <article key={row.label} className="stat-card report-card">
@@ -226,6 +216,16 @@ export default function ReportsPage() {
             </div>
           </div>
         </article>
+      </div>
+
+      <div className="report-module-cards">
+        {reportModules.map((module) => (
+          <article key={module.label} className="report-module-card">
+            <strong>{module.label}</strong>
+            <small>{module.description}</small>
+            <button type="button" className="secondary-button" onClick={() => handleModuleReport(module.label)}>Generate</button>
+          </article>
+        ))}
       </div>
 
       <div className="content-grid two-columns report-secondary-grid">
