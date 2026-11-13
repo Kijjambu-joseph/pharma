@@ -88,8 +88,21 @@ export default function ReportsPage() {
     [],
   );
 
+  const reportModules = [
+    { label: 'Dashboard', description: 'Revenue summary and trends' },
+    { label: 'POS', description: 'Cashier and sales summaries' },
+    { label: 'Inventory', description: 'Stock movement and expiry' },
+    { label: 'Purchases', description: 'Supplier purchases and orders' },
+    { label: 'Users', description: 'Access and activity reports' },
+    { label: 'Audit logs', description: 'System and security history' },
+  ];
+
   const handleGenerateReport = () => {
     toast.success(`Report generated for ${range === '30d' ? 'the last 30 days' : range === '7d' ? 'the last 7 days' : 'the selected range'}`);
+  };
+
+  const handleModuleReport = (label) => {
+    toast.success(`${label} report prepared successfully`);
   };
 
   const chartMax = Math.max(...salesSeries.map((item) => item.sales));
@@ -138,6 +151,16 @@ export default function ReportsPage() {
           <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
           <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
         </div>
+      </div>
+
+      <div className="report-module-cards">
+        {reportModules.map((module) => (
+          <article key={module.label} className="report-module-card">
+            <strong>{module.label}</strong>
+            <small>{module.description}</small>
+            <button type="button" className="secondary-button" onClick={() => handleModuleReport(module.label)}>Generate</button>
+          </article>
+        ))}
       </div>
 
       <div className="stats-grid reports-grid">
@@ -211,9 +234,12 @@ export default function ReportsPage() {
             <h3>Top medicines</h3>
           </div>
           <div className="table-wrapper">
-            <table>
+            <table className="batch-table">
               <thead>
                 <tr>
+                  <th>
+                    <input type="checkbox" aria-label="Select all medicines" />
+                  </th>
                   <th>Medicine</th>
                   <th>Units</th>
                   <th>Revenue</th>
@@ -222,6 +248,7 @@ export default function ReportsPage() {
               <tbody>
                 {topMedicines.map((item) => (
                   <tr key={item.name}>
+                    <td><input type="checkbox" aria-label={`Select ${item.name}`} /></td>
                     <td>{item.name}</td>
                     <td>{item.units}</td>
                     <td>{formatCurrency(item.revenue)}</td>
@@ -264,9 +291,12 @@ export default function ReportsPage() {
           <h3>Purchase history</h3>
         </div>
         <div className="table-wrapper">
-          <table>
+          <table className="batch-table">
             <thead>
               <tr>
+                <th>
+                  <input type="checkbox" aria-label="Select all purchase rows" />
+                </th>
                 <th>Order</th>
                 <th>Supplier</th>
                 <th>Date</th>
@@ -276,6 +306,7 @@ export default function ReportsPage() {
             <tbody>
               {purchases.map((purchase) => (
                 <tr key={purchase.id}>
+                  <td><input type="checkbox" aria-label={`Select ${purchase.id}`} /></td>
                   <td>{purchase.id}</td>
                   <td>{purchase.supplier}</td>
                   <td>{purchase.date}</td>

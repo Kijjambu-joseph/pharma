@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
 import toast from 'react-hot-toast';
 import { Search, Trash2 } from 'lucide-react';
+import { getBusinessProfile } from '../../data/businessProfile';
 import { medicines } from '../../data/mockData';
 
 const defaultCart = [
@@ -66,7 +68,250 @@ export default function PosPage() {
     setCart((current) => current.filter((item) => item.name !== itemName));
   };
 
+  const exportReceiptPdf = ({ businessProfile, saleReference, saleDate, received, paymentMethod, total, subtotal, change, cartItems }) => {
+    const doc = new jsPDF({ unit: 'pt', format: [260, 520] });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const centerX = pageWidth / 2;
+    let y = 26;
+
+    doc.setFillColor(37, 99, 235);
+    doc.setTextColor(255, 255, 255);
+    doc.roundedRect(18, 18, pageWidth - 36, 40, 8, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(businessProfile.pharmacyName, centerX, 34, { align: 'center' });
+
+    y = 72;
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(businessProfile.address, centerX, y, { align: 'center' });
+    y += 14;
+    doc.text(`${businessProfile.contactPhone} • ${businessProfile.email}`, centerX, y, { align: 'center' });
+
+    y += 22;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(18, y, pageWidth - 18, y);
+
+    y += 18;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Receipt #', 24, y);
+    doc.text(saleReference, pageWidth - 24, y, { align: 'right' });
+    y += 16;
+    doc.text('Date', 24, y);
+    doc.text(saleDate, pageWidth - 24, y, { align: 'right' });
+    y += 16;
+    doc.text('Payment', 24, y);
+    doc.text(paymentMethod, pageWidth - 24, y, { align: 'right' });
+
+    y += 18;
+    doc.line(18, y, pageWidth - 18, y);
+
+    y += 18;
+    doc.setFont('helvetica', 'bold');
+    doc.text('ITEM', 24, y);
+    doc.text('QTY', centerX - 28, y, { align: 'center' });
+    doc.text('TOTAL', pageWidth - 24, y, { align: 'right' });
+
+    y += 10;
+    doc.setFont('helvetica', 'normal');
+
+    cartItems.forEach((item) => {
+      const itemTotal = item.qty * item.unitPrice;
+      y += 16;
+      doc.text(item.name, 24, y, { maxWidth: 96 });
+      doc.text(String(item.qty), centerX - 28, y, { align: 'center' });
+      doc.text(`${businessProfile.currency} ${itemTotal.toLocaleString()}`, pageWidth - 24, y, { align: 'right' });
+    });
+
+    y += 20;
+    doc.line(18, y, pageWidth - 18, y);
+
+    y += 18;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal', 24, y);
+    doc.text(`${businessProfile.currency} ${subtotal.toLocaleString()}`, pageWidth - 24, y, { align: 'right' });
+    y += 16;
+    doc.text('Amount received', 24, y);
+    doc.text(`${businessProfile.currency} ${received.toLocaleString()}`, pageWidth - 24, y, { align: 'right' });
+    y += 16;
+    doc.text('Change', 24, y);
+    doc.text(`${businessProfile.currency} ${Math.max(change, 0).toLocaleString()}`, pageWidth - 24, y, { align: 'right' });
+
+    y += 22;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('TOTAL', 24, y);
+    doc.text(`${businessProfile.currency} ${total.toLocaleString()}`, pageWidth - 24, y, { align: 'right' });
+
+    y += 26;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(businessProfile.receiptFooter, centerX, y, { align: 'center' });
+
+    doc.save(`${saleReference}.pdf`);
+  };
+
+  const printReceipt = ({ businessProfile, saleReference, saleDate, received, paymentMethod, total, subtotal, change, cartItems }) => {
+    const rows = cartItems.map((item) => {
+      const itemTotal = item.qty * item.unitPrice;
+      return `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.qty}</td>
+          <td>${businessProfile.currency} ${item.unitPrice.toLocaleString()}</td>
+          <td>${businessProfile.currency} ${itemTotal.toLocaleString()}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank', 'width=430,height=760');
+
+    if (!printWindow) {
+      toast.error('Your browser blocked the print window. Please allow pop-ups and try again.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Receipt - ${saleReference}</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 24px 18px 32px;
+              font-family: Arial, sans-serif;
+              color: #0f172a;
+              background: #fff;
+            }
+            .receipt {
+              max-width: 360px;
+              margin: 0 auto;
+              text-align: left;
+            }
+            .brand {
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 10px;
+              margin-bottom: 14px;
+              text-align: center;
+            }
+            h1 {
+              margin: 0;
+              font-size: 22px;
+            }
+            p {
+              margin: 4px 0 0;
+              font-size: 11px;
+              color: #475569;
+            }
+            .meta {
+              display: flex;
+              justify-content: space-between;
+              gap: 12px;
+              font-size: 11px;
+              margin-bottom: 8px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 11px;
+              margin-top: 10px;
+            }
+            th, td {
+              text-align: left;
+              padding: 6px 0;
+              border-bottom: 1px solid #e2e8f0;
+            }
+            th:last-child, td:last-child {
+              text-align: right;
+            }
+            .totals {
+              border-top: 1px solid #e2e8f0;
+              margin-top: 12px;
+              padding-top: 12px;
+            }
+            .totals-row {
+              display: flex;
+              justify-content: space-between;
+              gap: 12px;
+              font-size: 11px;
+              margin-bottom: 6px;
+            }
+            .total-row {
+              font-size: 14px;
+              font-weight: 700;
+              margin-top: 10px;
+            }
+            .footer {
+              margin-top: 16px;
+              padding-top: 12px;
+              border-top: 1px solid #e2e8f0;
+              text-align: center;
+              font-size: 11px;
+              color: #475569;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .receipt {
+                max-width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="brand">
+              <h1>${businessProfile.pharmacyName}</h1>
+              <p>${businessProfile.address}</p>
+              <p>${businessProfile.contactPhone} • ${businessProfile.email}</p>
+            </div>
+
+            <div class="meta"><span>Receipt #</span><strong>${saleReference}</strong></div>
+            <div class="meta"><span>Date</span><strong>${saleDate}</strong></div>
+            <div class="meta"><span>Cashier</span><strong>Pharmacist</strong></div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+
+            <div class="totals">
+              <div class="totals-row"><span>Subtotal</span><strong>${businessProfile.currency} ${subtotal.toLocaleString()}</strong></div>
+              <div class="totals-row"><span>Payment</span><strong>${paymentMethod}</strong></div>
+              <div class="totals-row"><span>Amount received</span><strong>${businessProfile.currency} ${received.toLocaleString()}</strong></div>
+              <div class="totals-row"><span>Change</span><strong>${businessProfile.currency} ${Math.max(change, 0).toLocaleString()}</strong></div>
+              <div class="totals-row total-row"><span>Total</span><strong>${businessProfile.currency} ${total.toLocaleString()}</strong></div>
+            </div>
+
+            <div class="footer">${businessProfile.receiptFooter}</div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 250);
+  };
+
   const handleCheckout = () => {
+    const businessProfile = getBusinessProfile();
+
     if (!cart.length) {
       toast.error('Add at least one item before checkout');
       return;
@@ -141,9 +386,10 @@ export default function PosPage() {
         title: 'Receipt',
         html: `
           <div style="font-family:Arial, sans-serif; text-align:left; width:100%; color:#0f172a;">
-            <div style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
-              <h3 style="margin:0; font-size:24px;">PharmCare Pharmacy</h3>
-              <p style="margin:4px 0 0; font-size:12px; color:#475569;">Uganda • Cash counter</p>
+            <div style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px; text-align:center;">
+              <h3 style="margin:0; font-size:24px;">${businessProfile.pharmacyName}</h3>
+              <p style="margin:4px 0 0; font-size:12px; color:#475569;">${businessProfile.address}</p>
+              <p style="margin:4px 0 0; font-size:12px; color:#475569;">${businessProfile.contactPhone} • ${businessProfile.email}</p>
             </div>
 
             <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
@@ -176,7 +422,7 @@ export default function PosPage() {
             <div style="border-top:1px solid #e2e8f0; margin-top:12px; padding-top:12px;">
               <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
                 <span>Subtotal</span>
-                <strong>UGX ${subtotal.toLocaleString()}</strong>
+                <strong>${businessProfile.currency} ${subtotal.toLocaleString()}</strong>
               </div>
               <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
                 <span>Payment method</span>
@@ -184,27 +430,58 @@ export default function PosPage() {
               </div>
               <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
                 <span>Amount received</span>
-                <strong>UGX ${received.toLocaleString()}</strong>
+                <strong>${businessProfile.currency} ${received.toLocaleString()}</strong>
               </div>
               <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:10px;">
                 <span>Change</span>
-                <strong>UGX ${Math.max(change, 0).toLocaleString()}</strong>
+                <strong>${businessProfile.currency} ${Math.max(change, 0).toLocaleString()}</strong>
               </div>
               <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:12px; font-weight:700;">
                 <span>Total</span>
-                <span>UGX ${total.toLocaleString()}</span>
+                <span>${businessProfile.currency} ${total.toLocaleString()}</span>
               </div>
+            </div>
+
+            <div style="margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0; font-size:12px; color:#475569; text-align:center;">
+              ${businessProfile.receiptFooter}
             </div>
           </div>
         `,
         icon: 'success',
-        confirmButtonText: 'Print receipt',
+        confirmButtonText: 'Export PDF',
+        denyButtonText: 'Print receipt',
         confirmButtonColor: '#1d4ed8',
+        denyButtonColor: '#0f172a',
+        showDenyButton: true,
         showCloseButton: true,
         width: '520px',
       }).then((response) => {
         if (response.isConfirmed) {
-          window.print();
+          exportReceiptPdf({
+            businessProfile,
+            saleReference,
+            saleDate,
+            received,
+            paymentMethod,
+            total,
+            subtotal,
+            change,
+            cartItems: cart,
+          });
+        }
+
+        if (response.isDenied) {
+          printReceipt({
+            businessProfile,
+            saleReference,
+            saleDate,
+            received,
+            paymentMethod,
+            total,
+            subtotal,
+            change,
+            cartItems: cart,
+          });
         }
       });
 
@@ -219,7 +496,6 @@ export default function PosPage() {
           <p className="eyebrow">Cash counter</p>
           <h2>Point of sale</h2>
         </div>
-        <button type="button" className="primary-button" onClick={handleCheckout} disabled={!cart.length}>Complete checkout</button>
       </div>
 
       <div className="pos-layout">
@@ -281,6 +557,10 @@ export default function PosPage() {
             <span>{receivedAmount >= total ? 'Change' : 'Due'}</span>
             <strong>UGX {Math.max(receivedAmount >= total ? change : balanceDue, 0).toLocaleString()}</strong>
           </div>
+
+          <button type="button" className="primary-button checkout-button" onClick={handleCheckout} disabled={!cart.length}>
+            Complete checkout
+          </button>
         </aside>
       </div>
 

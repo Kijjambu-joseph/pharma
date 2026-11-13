@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
 import toast from 'react-hot-toast';
-import { Eye, Lock, PencilLine, Plus, Search, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Eye, Lock, PencilLine, Plus, Power, PowerOff, Search, ShieldCheck, Users } from 'lucide-react';
 import { users as userSeed } from '../../data/mockData';
 
 const emptyForm = {
@@ -30,6 +29,7 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [selectedId, setSelectedId] = useState(userSeed[0]?.id ?? null);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
@@ -140,37 +140,48 @@ export default function UsersPage() {
     setFormData(emptyForm);
   };
 
-  const handleStatusToggle = () => {
-    if (!selectedUser) return;
+  const handleStatusToggle = (userId = selectedId) => {
+    const targetUser = users.find((user) => user.id === userId);
+    if (!targetUser) return;
 
-    const nextStatus = selectedUser.status === 'Active' ? 'Inactive' : 'Active';
+    const nextStatus = targetUser.status === 'Active' ? 'Inactive' : 'Active';
     setUsers((current) =>
-      current.map((user) => (user.id === selectedUser.id ? { ...user, status: nextStatus } : user))
+      current.map((user) => (user.id === userId ? { ...user, status: nextStatus } : user))
     );
-    toast.success(`${selectedUser.name} marked as ${nextStatus}`);
+    toast.success(`${targetUser.name} marked as ${nextStatus}`);
   };
 
-  const handleDeleteUser = (userId) => {
-    const user = users.find((item) => item.id === userId);
-    if (!user) return;
+  const toggleUserSelection = (userId) => {
+    setSelectedIds((current) => {
+      if (current.includes(userId)) {
+        return current.filter((id) => id !== userId);
+      }
 
-    Swal.fire({
-      title: 'Delete user?',
-      text: `This will remove ${user.name} from the user list. This action cannot be undone.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Delete user',
-      cancelButtonText: 'Cancel',
-    }).then((result) => {
-      if (!result.isConfirmed) return;
-
-      const nextUsers = users.filter((item) => item.id !== userId);
-      setUsers(nextUsers);
-      setSelectedId(nextUsers[0]?.id ?? null);
-      toast.success(`${user.name} deleted successfully`);
+      return [...current, userId];
     });
+  };
+
+  const toggleAllUsers = () => {
+    if (selectedIds.length === filteredUsers.length) {
+      setSelectedIds([]);
+      return;
+    }
+
+    setSelectedIds(filteredUsers.map((user) => user.id));
+  };
+
+  const bulkStatusToggle = () => {
+    if (!selectedIds.length) return;
+
+    const nextState = users.find((user) => selectedIds.includes(user.id))?.status === 'Active' ? 'Inactive' : 'Active';
+
+    setUsers((current) =>
+      current.map((user) => (selectedIds.includes(user.id) ? { ...user, status: nextState } : user))
+    );
+
+    const names = users.filter((user) => selectedIds.includes(user.id)).map((user) => user.name).join(', ');
+    toast.success(`${names || 'Selected users'} marked as ${nextState}`);
+    setSelectedIds([]);
   };
 
   return (
@@ -245,10 +256,29 @@ export default function UsersPage() {
             </select>
           </div>
 
+          {selectedIds.length > 0 && (
+            <div className="bulk-actions">
+              <strong>{selectedIds.length} selected</strong>
+              <div className="inline-actions">
+                <button type="button" className="status-toggle-button" onClick={bulkStatusToggle} aria-label="Toggle selected users">
+                  {users.find((user) => selectedIds.includes(user.id))?.status === 'Active' ? <PowerOff size={15} /> : <Power size={15} />}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="table-wrapper">
-            <table>
+            <table className="batch-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={filteredUsers.length > 0 && selectedIds.length === filteredUsers.length}
+                      onChange={toggleAllUsers}
+                      aria-label="Select all users"
+                    />
+                  </th>
                   <th>User</th>
                   <th>Role</th>
                   <th>Department</th>
@@ -259,7 +289,7 @@ export default function UsersPage() {
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="5">
+                    <td colSpan="6">
                       <div className="empty-state">
                         <strong>No users match your filters.</strong>
                         <span>Try another search or create a new user.</span>
@@ -270,9 +300,17 @@ export default function UsersPage() {
                   filteredUsers.map((user) => (
                     <tr
                       key={user.id}
-                      className={selectedId === user.id ? 'supplier-row active' : 'supplier-row'}
+                      className={`${selectedId === user.id ? 'supplier-row active' : 'supplier-row'} ${selectedIds.includes(user.id) ? 'selected' : ''}`}
                       onClick={() => setSelectedId(user.id)}
                     >
+                      <td onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          aria-label={`Select ${user.name}`}
+                        />
+                      </td>
                       <td>
                         <div className="supplier-name-block">
                           <strong>{user.name}</strong>
@@ -294,8 +332,8 @@ export default function UsersPage() {
                           <button type="button" className="icon-button" onClick={() => openEditUser(user)} aria-label="Edit user">
                             <PencilLine size={15} />
                           </button>
-                          <button type="button" className="icon-button danger-icon-button" onClick={() => handleDeleteUser(user.id)} aria-label="Delete user">
-                            <Trash2 size={15} />
+                          <button type="button" className="status-toggle-button" onClick={() => handleStatusToggle(user.id)} aria-label={user.status === 'Active' ? 'Deactivate user' : 'Activate user'}>
+                            {user.status === 'Active' ? <PowerOff size={15} /> : <Power size={15} />}
                           </button>
                         </div>
                       </td>
@@ -356,8 +394,8 @@ export default function UsersPage() {
                   <small>Account status</small>
                   <strong>{selectedUser.status === 'Active' ? 'Access enabled' : 'Access disabled'}</strong>
                 </div>
-                <button type="button" className="secondary-button" onClick={handleStatusToggle}>
-                  {selectedUser.status === 'Active' ? 'Deactivate' : 'Activate'}
+                <button type="button" className="secondary-button icon-toggle-button" onClick={handleStatusToggle} aria-label={selectedUser.status === 'Active' ? 'Deactivate user' : 'Activate user'}>
+                  {selectedUser.status === 'Active' ? <PowerOff size={16} /> : <Power size={16} />}
                 </button>
               </div>
 

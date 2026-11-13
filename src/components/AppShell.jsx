@@ -1,14 +1,23 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import {
   Activity,
+  Bell,
   Boxes,
   CreditCard,
   FileText,
   LayoutDashboard,
+  LogOut,
+  Moon,
   Pill,
+  Power,
+  PowerOff,
   ReceiptText,
+  Settings,
   ShieldCheck,
+  Sun,
   TrendingUp,
+  UserRound,
   Users,
   Warehouse,
 } from 'lucide-react';
@@ -22,6 +31,7 @@ import PrescriptionsPage from '../modules/prescriptions/PrescriptionsPage';
 import ReportsPage from '../modules/reports/ReportsPage';
 import UsersPage from '../modules/users/UsersPage';
 import AuditPage from '../modules/audit/AuditPage';
+import SettingsPage from '../modules/settings/SettingsPage';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -34,11 +44,25 @@ const navItems = [
   { to: '/reports', label: 'Reports', icon: TrendingUp },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/audit', label: 'Audit logs', icon: Activity },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function AppShell() {
+  const [darkMode, setDarkMode] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const currentUser = {
+    name: 'Amina Okello',
+    role: 'Pharmacist',
+    email: 'amina.okello@pharmacy.com',
+    department: 'Pharmacy operations',
+  };
+
+  useEffect(() => {
+    document.body.classList.toggle('dark-theme', darkMode);
+  }, [darkMode]);
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${darkMode ? 'dark-theme' : ''}`}>
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-icon">
@@ -68,8 +92,50 @@ export default function AppShell() {
           </div>
 
           <div className="topbar-actions">
-            <button type="button" className="secondary-button">Export</button>
-            <button type="button" className="primary-button">New sale</button>
+            <button type="button" className="header-icon-button" aria-label="Notifications">
+              <Bell size={16} />
+            </button>
+            <button type="button" className="header-icon-button" aria-label="Toggle dark mode" onClick={() => setDarkMode((current) => !current)}>
+              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            <div className="avatar-menu-wrap">
+              <button type="button" className="header-avatar-button" aria-label="User profile" onClick={() => setProfileOpen((open) => !open)}>
+                <UserRound size={18} />
+              </button>
+
+              {profileOpen && (
+                <div className="header-profile-menu">
+                  <div className="profile-summary">
+                    <div className="profile-avatar-badge">{currentUser.name.charAt(0)}</div>
+                    <div>
+                      <strong>{currentUser.name}</strong>
+                      <small>{currentUser.role}</small>
+                    </div>
+                  </div>
+
+                  <div className="profile-meta-grid">
+                    <div>
+                      <span>Email</span>
+                      <strong>{currentUser.email}</strong>
+                    </div>
+                    <div>
+                      <span>Department</span>
+                      <strong>{currentUser.department}</strong>
+                    </div>
+                  </div>
+
+                  <button type="button" className="profile-menu-action">
+                    <Settings size={15} />
+                    Profile settings
+                  </button>
+                  <button type="button" className="profile-menu-action danger-action">
+                    <LogOut size={15} />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -86,6 +152,7 @@ export default function AppShell() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>
       </div>
